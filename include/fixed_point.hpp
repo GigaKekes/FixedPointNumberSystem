@@ -1,7 +1,6 @@
 #ifndef FIXED_POINT_HPP
 #define FIXED_POINT_HPP
 
-#include <ios>
 #include <limits>
 #include <iostream>
 #include <cmath>
@@ -15,7 +14,7 @@ constexpr T shiftValue(T value, int amount) noexcept
   {
     if (amount < 0) 
     {
-      return ~(~value >> -amount);
+      return -(-value >> -amount);
     } 
     else 
   {
@@ -35,13 +34,13 @@ constexpr T shiftValue(T value, int amount) noexcept
   }
 }
 
-
 template<typename T = int, unsigned int FRB = 8>
 struct fixed_point
 {
 private:
   // Raw data about this number
   T raw_;
+
 public:
 
   // Static members
@@ -74,8 +73,19 @@ public:
 
   constexpr T frac_part() const noexcept
   {
-    using ULL = unsigned long long;
-    return raw_ & (frac_count <= 0 ? 0 : int_count <= 0 ? ~0ULL : (1ULL << ULL(frac_count >= 0 ? frac_count : 0)) - 1ULL);
+    using ll = unsigned long long;
+    int raw = (raw_ >= 0 ? raw_ : -raw_);
+    if(frac_count <= 0)
+    {
+      return 0;
+    }
+    if(int_count <= 0)
+    {
+      return raw;
+    }
+
+    return raw & ((1ll << ll(frac_count)) - 1ll);
+
   }
 
   // Arithmetics
@@ -96,7 +106,7 @@ public:
   }
   constexpr  fixed_point<T, FRB>& operator /= (const fixed_point<T, FRB>& lfp)
   {
-    raw_ = shiftValue(raw_ / lfp.raw_value(), fixed_point<T,FRB>::frac_count );
+    raw_ = (raw_ << fixed_point<T,FRB>::frac_count) / lfp.raw_value();
     return *this;
   }
 
@@ -114,7 +124,7 @@ public:
   }
   constexpr  fixed_point<T, FRB> operator/ (const fixed_point<T, FRB>& lfp) const
   {
-    return {raw_ / lfp.raw_value(), fixed_point<T,FRB>::frac_count} ;
+    return {(raw_ << fixed_point<T,FRB>::frac_count) / lfp.raw_value(), 0} ;
   }
 
   // Comparison
@@ -142,14 +152,13 @@ public:
   {
     return raw_ >= lfp.raw_value();
   }
+
 };
 
 // Stream
 template <typename T = int, unsigned int FRB = 8>
 inline std::ostream &operator<<(std::ostream &stream, const fixed_point<T, FRB> &fixedNum)
 {
-  //stream << fixedNum.int_part() << "+" << fixedNum.frac_part() << "*2^-" << fixed_point<T, FRB>::frac_count;
-
   T frac = static_cast<T>(fixedNum.frac_part() * std::pow(5, fixed_point<T, FRB>::frac_count));
   while(frac % 10 == 0 && frac != 0) frac /= 10; 
 

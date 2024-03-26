@@ -31,7 +31,5 @@ int main (int argc, char *argv[])
   fp::fixed_point<int, 8> fpneg1(-100, 4);
   fp::fixed_point<int, 8> fpneg2(26, 4);
   operatorTest(fpneg1, fpneg2);
-
-
   return 0;
 }
